@@ -94,7 +94,9 @@ public class SocketClient {
                 }
             } catch (IOException e) {
                 if (e instanceof java.net.SocketException) {
-                    Log.v("SocketClient", "Connection lost. Attempting to reconnect...");this.close();
+                    e.printStackTrace();
+                    Log.v("SocketClient", "Connection lost. Attempting to reconnect...");
+                    this.close();
                     try {
                         this.socket = new Socket(host, port);
                         this.printWriter = new PrintWriter(socket.getOutputStream(), true);

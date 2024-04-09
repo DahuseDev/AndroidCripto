@@ -52,6 +52,7 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ContactV
         TextView name;
         TextView lastMessage;
         View unreadIndicator;
+        View onlineIndicator;
         TextView unreadCount;
         TextView date;
 
@@ -63,6 +64,7 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ContactV
             unreadIndicator = itemView.findViewById(R.id.unread_indicator);
             unreadCount = itemView.findViewById(R.id.unread_count);
             date = itemView.findViewById(R.id.contact_last_time);
+            onlineIndicator = itemView.findViewById(R.id.online_indicator);
         }
 
         public void bind(Contact contact) {
@@ -83,6 +85,11 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ContactV
             } else {
                 unreadIndicator.setVisibility(View.GONE);
                 unreadCount.setVisibility(View.GONE);
+            }
+            if(contact.isOnline()){
+                onlineIndicator.setVisibility(View.VISIBLE);
+            } else {
+                onlineIndicator.setVisibility(View.GONE);
             }
             itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(v.getContext(), ChatActivity.class);

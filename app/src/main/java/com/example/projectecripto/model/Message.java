@@ -44,6 +44,8 @@ public class Message implements Serializable {
         return content;
     }
     public String getShortContent() {
+        String content = this.content;
+        content = content.replace("\n", " ");
         if (content.length() > 20) {
             return content.substring(0, 20) + "...";
         }

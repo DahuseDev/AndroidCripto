@@ -3,9 +3,12 @@ package com.example.projectecripto.model;
 import com.example.projectecripto.adapter.LocalDateTimeAdapter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.Serializable;
+import java.lang.reflect.Type;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 
 public class Contact implements Serializable {
 
@@ -16,6 +19,7 @@ public class Contact implements Serializable {
     private String lastMessage;
     private int unreadedMessages;
     private LocalDateTime date;
+    private boolean online;
     private static Contact currentContact;
 
     public Contact(int id,String photoUrl, String name, String lastMessage, int unreadedMessages, LocalDateTime date) {
@@ -41,6 +45,14 @@ public class Contact implements Serializable {
 
     public int getUnreadedMessages() {
         return unreadedMessages;
+    }
+
+    public boolean isOnline() {
+        return online;
+    }
+
+    public void setOnline(boolean online) {
+        this.online = online;
     }
 
     public void setId(int id) {
@@ -93,5 +105,19 @@ public class Contact implements Serializable {
 
     public static void setCurrentContact(Contact currentContact) {
         Contact.currentContact = currentContact;
+    }
+
+    public static String ArrayToJson(HashMap<Integer, Contact> contacts){
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+                .create();
+        return gson.toJson(contacts);
+    }
+    public static HashMap<Integer, Contact> ArrayFromJson(String json) {
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+                .create();
+        Type type = new TypeToken<HashMap<Integer, Contact>>(){}.getType();
+        return gson.fromJson(json, type);
     }
 }

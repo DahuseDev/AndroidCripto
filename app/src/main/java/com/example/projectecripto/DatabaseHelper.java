@@ -9,6 +9,7 @@ import android.os.Debug;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.core.view.ViewPropertyAnimatorListener;
 
 import com.example.projectecripto.model.Contact;
 import com.example.projectecripto.model.Message;
@@ -21,13 +22,14 @@ import java.util.List;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "contactsManager";
-    private static final int DATABASE_VERSION = 10;
+    private static final int DATABASE_VERSION = 12;
     private static final String TABLE_CONTACTS = "contacts";
     private static final String KEY_ID = "id";
     private static final String KEY_PHOTO = "photo_url";
     private static final String KEY_NAME = "name";
     private static final String KEY_LAST_MESSAGE = "last_message";
     private static final String KEY_UNREAD_MESSAGES = "unread_messages";
+    private static final String KEY_ONLINE = "online";
     private static final String TABLE_MESSAGES = "messages";
     private static final String KEY_MESSAGE_ID = "id";
     private static final String KEY_SENDER_ID = "sender_id";
@@ -49,6 +51,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         String CREATE_CONTACTS_TABLE = "CREATE TABLE " + TABLE_CONTACTS + "("
                 + KEY_ID + " INTEGER PRIMARY KEY," + KEY_PHOTO + " TEXT,"
                 + KEY_NAME + " TEXT," + KEY_LAST_MESSAGE + " TEXT,"
+                + KEY_ONLINE + " INTEGER,"
                 + KEY_UNREAD_MESSAGES + " INTEGER, " + KEY_DATE + " DATETIME)";
         db.execSQL(CREATE_CONTACTS_TABLE);
 
@@ -79,10 +82,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 String photoUrl = cursor.getString(1);
                 String name = cursor.getString(2);
                 String lastMessage = cursor.getString(3);
-                int unreadMessages = Integer.parseInt(cursor.getString(4));
-                LocalDateTime date = LocalDateTime.parse(cursor.getString(5));
+                boolean online = Integer.parseInt(cursor.getString(4)) == 1;
+                int unreadMessages = Integer.parseInt(cursor.getString(5));
+                LocalDateTime date = LocalDateTime.parse(cursor.getString(6));
                 Contact contact = new Contact(id, photoUrl, name, lastMessage, unreadMessages, date);
-                contactList.add(contact);
+                contact.setOnline(online);
+                if(id != Contact.getCurrentContact().getId()){
+                    contactList.add(contact);
+                }
             } while (cursor.moveToNext());
         }
 
@@ -120,6 +127,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(KEY_NAME, contact.getName());
         values.put(KEY_LAST_MESSAGE, contact.getLastMessage());
         values.put(KEY_UNREAD_MESSAGES, contact.getUnreadedMessages());
+        values.put(KEY_ONLINE, contact.isOnline() ? 1 : 0);
         //handle date null
         if(contact.getLastMessageTime() == null){
             contact.setLastMessageTime(LocalDateTime.now());
@@ -140,24 +148,20 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         db.insert(TABLE_MESSAGES, null, values);
 
-        values = new ContentValues();
-        values.put(KEY_LAST_MESSAGE, message.getShortContent());
-        values.put(KEY_DATE, message.getDate().toString());
-        if (message.isSent()){
-            values.put(KEY_UNREAD_MESSAGES, getUnreadMessages(message.getReceiverId()) + 1);
-            db.update(TABLE_CONTACTS, values, KEY_ID + " = ?", new String[]{String.valueOf(message.getReceiverId())});
-        }else{
-            values.put(KEY_UNREAD_MESSAGES, getUnreadMessages(message.getContactId()) + 1);
-            db.update(TABLE_CONTACTS, values, KEY_ID + " = ?", new String[]{String.valueOf(message.getContactId())});
-        }
+        updateLastMessage(message.getContactId(), message.getShortContent(), message.getDate(), message.isSent());
     }
     // Update the last message of a contact
-    public void updateLastMessage(int contactId, String lastMessage, LocalDateTime date) {
+    public void updateLastMessage(int contactId, String lastMessage, LocalDateTime date, boolean isSent) {
         ContentValues values = new ContentValues();
         values.put(KEY_LAST_MESSAGE, lastMessage);
         values.put(KEY_DATE, date.toString());
-        values.put(KEY_UNREAD_MESSAGES, getUnreadMessages(contactId) + 1);
-        db.update(TABLE_CONTACTS, values, KEY_ID + " = ?", new String[]{String.valueOf(contactId)});
+        if (isSent){
+            values.put(KEY_UNREAD_MESSAGES, 0);
+            db.update(TABLE_CONTACTS, values, KEY_ID + " = ?", new String[]{String.valueOf(contactId)});
+        }else{
+            values.put(KEY_UNREAD_MESSAGES, getUnreadMessages(contactId) + 1);
+            db.update(TABLE_CONTACTS, values, KEY_ID + " = ?", new String[]{String.valueOf(contactId)});
+        }
     }
 
     private int getUnreadMessages(int contactId) {
@@ -190,4 +194,18 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return exists;
     }
 
+    public void updateContact(Contact contact) {
+        if(contactExists(contact.getId())){
+            ContentValues values = new ContentValues();
+            values.put(KEY_NAME, contact.getName());
+            values.put(KEY_PHOTO, contact.getPhotoUrl());
+            values.put(KEY_ONLINE, contact.isOnline() ? 1 : 0);
+            db.update(TABLE_CONTACTS, values, KEY_ID + " = ?", new String[]{String.valueOf(contact.getId())});
+        }
+    }
+    public void setContactsOffline() {
+        ContentValues values = new ContentValues();
+        values.put(KEY_ONLINE, 0);
+        db.update(TABLE_CONTACTS, values, null, null);
+    }
 }

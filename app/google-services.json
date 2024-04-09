@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "776668590888",
+    "firebase_url": "https://cripto-48692-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "cripto-48692",
+    "storage_bucket": "cripto-48692.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:776668590888:android:249e3cde14864170e1d61d",
+        "android_client_info": {
+          "package_name": "com.example.projectecripto"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKjWa9rTiiKE4inCcLw4U7xaIjGzCVJAI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

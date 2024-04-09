@@ -5,10 +5,12 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.projectecripto.FirebaseHelper;
 import com.example.projectecripto.R;
 import com.example.projectecripto.activity.MainActivity;
 import com.example.projectecripto.model.Contact;
@@ -20,6 +22,8 @@ public class LoginActivity extends AppCompatActivity {
     EditText etUser;
     EditText etPass;
     Button btnLogin;
+    FirebaseHelper firebaseHelper;
+    TextView tvRegister;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -27,28 +31,43 @@ public class LoginActivity extends AppCompatActivity {
         etUser = findViewById(R.id.etUsername);
         etPass = findViewById(R.id.etPassword);
         btnLogin = findViewById(R.id.btLogin);
+        tvRegister = findViewById(R.id.tvLogin);
+        tvRegister.setOnClickListener(v -> {
+            Intent intent = new Intent(this, RegisterActivity.class);
+            startActivity(intent);
+        });
+        firebaseHelper = new FirebaseHelper();
         btnLogin.setOnClickListener(v -> {
-            if(etUser.getText().toString().equals("a") && etPass.getText().toString().equals("a")){
-                // sharedPreference to save the user
-                Contact contact = new Contact(1, "","admin", "",0, LocalDateTime.now());
-
-//                SharedPreferences sharedPreferences = getSharedPreferences("user", MODE_PRIVATE);
-//                SharedPreferences.Editor editor = sharedPreferences.edit();
-                Contact.setCurrentContact(contact);
-//                editor.putString("username", etUser.getText().toString());
-//                editor.putInt("id", 1);
-//                editor.apply();
-                Intent intent = new Intent(this, MainActivity.class);
-                startActivity(intent);
-            }if (etUser.getText().toString().equals("u") && etPass.getText().toString().equals("u")){
-                Contact contact = new Contact(2, "","user", "",0, LocalDateTime.now());
+            Contact contact = firebaseHelper.login(etUser.getText().toString(), etPass.getText().toString());
+            if(contact != null){
                 Contact.setCurrentContact(contact);
                 Intent intent = new Intent(this, MainActivity.class);
                 startActivity(intent);
-            }
-            else{
+            } else {
                 etUser.setError("Usuario o contraseña incorrectos");
             }
+//            if(etUser.getText().toString().equals("a") && etPass.getText().toString().equals("a")){
+//                // sharedPreference to save the user
+//                Contact contact = new Contact(1, "","admin", "",0, LocalDateTime.now());
+//
+////                SharedPreferences sharedPreferences = getSharedPreferences("user", MODE_PRIVATE);
+////                SharedPreferences.Editor editor = sharedPreferences.edit();
+//                Contact.setCurrentContact(contact);
+////                editor.putString("username", etUser.getText().toString());
+////                editor.putInt("id", 1);
+////                editor.apply();
+//                Intent intent = new Intent(this, MainActivity.class);
+//                startActivity(intent);
+//            }
+//            if (etUser.getText().toString().equals("u") && etPass.getText().toString().equals("u")){
+//                Contact contact = new Contact(2, "","user", "",0, LocalDateTime.now());
+//                Contact.setCurrentContact(contact);
+//                Intent intent = new Intent(this, MainActivity.class);
+//                startActivity(intent);
+//            }
+//            else{
+//                etUser.setError("Usuario o contraseña incorrectos");
+//            }
         });
 
     }

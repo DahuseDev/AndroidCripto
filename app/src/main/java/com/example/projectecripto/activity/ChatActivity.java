@@ -71,8 +71,6 @@ public class ChatActivity extends AppCompatActivity {
         }
 
         db.resetUnreadMessages(contact.getId());
-
-        messageList.add(new Message("Hi!", false, LocalDateTime.now(), contact.getId(), 1));
         messageAdapter = new MessageAdapter(messageList);
         recyclerView.setAdapter(messageAdapter);
         btnSend = findViewById(R.id.button_send);
@@ -86,7 +84,7 @@ public class ChatActivity extends AppCompatActivity {
 //        }));
 
         btnSend.setOnClickListener(v -> {
-            String message = etMessage.getText().toString();
+            String message = etMessage.getText().toString().trim();
             if (!message.isEmpty()) {
                 int currentId = Contact.getCurrentContact().getId();
                 Message newMessage = new Message(message, true, LocalDateTime.now(), currentId, contact.getId());
@@ -130,5 +128,10 @@ public class ChatActivity extends AppCompatActivity {
             // Call the method
             onNewMessageReceived();
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
     }
 }

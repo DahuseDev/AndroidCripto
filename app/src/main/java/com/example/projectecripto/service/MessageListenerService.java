@@ -15,6 +15,7 @@ import com.google.gson.Gson;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class MessageListenerService extends Service {
@@ -24,9 +25,25 @@ public class MessageListenerService extends Service {
     private SocketClient socketClient;
     private SharedPreferences sharedPreferences;
     private Thread thread;
+    private static HashMap<Integer, Contact> contacts = new HashMap<>();
+
+    public static List<Contact> getOnlineUsers() {
+        List<Contact> onlineUsers = new ArrayList<>();
+        for (Contact c : contacts.values()) {
+            if (c.isOnline()) {
+                onlineUsers.add(c);
+            }
+        }
+        return onlineUsers;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
+        if(Contact.getCurrentContact() == null){
+            stopService(new Intent(this, MessageListenerService.class));
+            return;
+        }
         isRunning = true;
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         messageId = sharedPreferences.getInt(LAST_MESSAGE_ID, 0);
@@ -52,7 +69,7 @@ public class MessageListenerService extends Service {
                     break;
             }
         }
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     @Override
@@ -63,22 +80,44 @@ public class MessageListenerService extends Service {
     private void startListeningForMessages() {
         Log.v("MessageListenerService", "Listening for messages");
         // Check for new messages here
-        socketClient = new SocketClient("   192.168.123.43", 8123, v ->{
+        socketClient = new SocketClient("192.168.93.43", 8123, v ->{
             DatabaseHelper db = new DatabaseHelper(this);
-            //Desencripta v amb la clau simetrica
             SocketMessage socketMessage = SocketMessage.fromJson(v);
-            if(!socketMessage.getType().equals("message")) return;
-            Message message = Message.fromJson(socketMessage.getContent());
-            messageId++;
-            message.setId(messageId);
-            message.setSent(!message.isSent());
-            if (!db.contactExists(message.getContactId())) {
-                Contact newContact = new Contact(message.getContactId(), null, "Contact " + message.getContactId(), message.getShortContent(), 1, message.getDate());
-                db.addContact(newContact);
+            switch (socketMessage.getType()){
+                case "message":
+                    Message message = Message.fromJson(socketMessage.getContent());
+                    messageId++;
+                    message.setId(messageId);
+                    message.setSent(!message.isSent());
+                    message.setDate(LocalDateTime.now());
+                    if (!db.contactExists(message.getContactId())) {
+                        Contact newContact = new Contact(message.getContactId(), null, "Contact " + message.getContactId(), message.getShortContent(), 0, message.getDate());
+                        db.addContact(newContact);
+                    }
+                    db.addMessage(message);
+                    sharedPreferences.edit().putInt(LAST_MESSAGE_ID, messageId).apply();
+                    break;
+                case "status":
+                    Contact contact = Contact.fromJson(socketMessage.getContent());
+                    db.updateContact(contact);
+                    if(contact.isOnline()){
+                        contacts.put(contact.getId(), contact);
+                    }else{
+                        contacts.remove(contact.getId());
+                    }
+                    break;
+                case "contacts":
+                    db.setContactsOffline();
+                    contacts = Contact.ArrayFromJson(socketMessage.getContent());
+                    for (Contact c : contacts.values()) {
+                        if(c.getId() != Contact.getCurrentContact().getId()){
+                            db.updateContact(c);
+                        }
+                    }
+                    break;
             }
-            db.addMessage(message);
-            sharedPreferences.edit().putInt(LAST_MESSAGE_ID, messageId).apply();
             sendNewMessageBroadcast();
+
         });
     }
 
@@ -109,6 +148,8 @@ public class MessageListenerService extends Service {
     public void onDestroy() {
         super.onDestroy();
         isRunning = false;
-        socketClient.close();
+        if(socketClient != null){
+            socketClient.close();
+        }
     }
 }
