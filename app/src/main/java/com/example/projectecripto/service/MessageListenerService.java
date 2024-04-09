@@ -4,10 +4,14 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 import com.example.projectecripto.DatabaseHelper;
+import com.example.projectecripto.SocketClient;
 import com.example.projectecripto.model.Contact;
 import com.example.projectecripto.model.Message;
+import com.example.projectecripto.model.SocketMessage;
+import com.google.gson.Gson;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -17,18 +21,37 @@ public class MessageListenerService extends Service {
     private static final String LAST_MESSAGE_ID = "last_message_id";
     private boolean isRunning = false;
     private static int messageId = 0;
+    private SocketClient socketClient;
     private SharedPreferences sharedPreferences;
+    private Thread thread;
     @Override
     public void onCreate() {
         super.onCreate();
         isRunning = true;
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         messageId = sharedPreferences.getInt(LAST_MESSAGE_ID, 0);
-        startListeningForMessages();
+        Log.v("MessageListenerService", "Service created");
+        thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                startListeningForMessages();
+            }
+        });
+        thread.start();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && intent.getAction() != null) {
+            switch (intent.getAction()) {
+                case "SEND_MESSAGE":
+                    Message message = (Message) intent.getSerializableExtra("message");
+                    if (message != null) {
+                        sendMessage(message);
+                    }
+                    break;
+            }
+        }
         return START_STICKY;
     }
 
@@ -38,23 +61,35 @@ public class MessageListenerService extends Service {
     }
 
     private void startListeningForMessages() {
-        new Thread(() -> {
-            while (isRunning) {
-                // Check for new messages here
-                if (checkForNewMessages()) {
-                    sendNewMessageBroadcast();
-                }
-                try {
-                    Thread.sleep(1000); // Sleep for a while before checking again
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+        Log.v("MessageListenerService", "Listening for messages");
+        // Check for new messages here
+        socketClient = new SocketClient("   192.168.123.43", 8123, v ->{
+            DatabaseHelper db = new DatabaseHelper(this);
+            //Desencripta v amb la clau simetrica
+            SocketMessage socketMessage = SocketMessage.fromJson(v);
+            if(!socketMessage.getType().equals("message")) return;
+            Message message = Message.fromJson(socketMessage.getContent());
+            messageId++;
+            message.setId(messageId);
+            message.setSent(!message.isSent());
+            if (!db.contactExists(message.getContactId())) {
+                Contact newContact = new Contact(message.getContactId(), null, "Contact " + message.getContactId(), message.getShortContent(), 1, message.getDate());
+                db.addContact(newContact);
             }
-        }).start();
+            db.addMessage(message);
+            sharedPreferences.edit().putInt(LAST_MESSAGE_ID, messageId).apply();
+            sendNewMessageBroadcast();
+        });
+    }
+
+    public void sendMessage(Message message) {
+        if (socketClient != null) {
+            socketClient.sendMessage(message);
+        }
     }
     public static void addTestMessages(DatabaseHelper db) {
-        for (int i = 0; i < 5; i++) {
-            Message message = new Message(i, "Message " + (i + 1), false, LocalDateTime.now(), 123);
+        for (int i = 0; i < 1; i++) {
+            Message message = new Message("Message " + (i + 1), false, LocalDateTime.now(), 2,1);
             if (!db.contactExists(message.getContactId())) {
                 Contact newContact = new Contact(message.getContactId(), null, "Contact " + message.getContactId(), null, 0, null);
                 db.addContact(newContact);
@@ -64,27 +99,8 @@ public class MessageListenerService extends Service {
         }
     }
 
-    private boolean checkForNewMessages() {
-        int lastMessageId = sharedPreferences.getInt(LAST_MESSAGE_ID, 0);
-        // Simulate new messages
-        if(messageId == lastMessageId){
-            return false;
-        }
-        DatabaseHelper db = new DatabaseHelper(this);
-        for (int i = lastMessageId + 1; i <= messageId; i++) {
-            Message newMessage = new Message(i, "New message " + i, false, LocalDateTime.now(), 123);
-            lastMessageId = i;
-            if (!db.contactExists(newMessage.getContactId())) {
-                Contact newContact = new Contact(newMessage.getContactId(), null, "Contact " + newMessage.getContactId(), null, 0, null);
-                db.addContact(newContact);
-            }
-            db.addMessage(newMessage);
-        }
-        sharedPreferences.edit().putInt(LAST_MESSAGE_ID, lastMessageId).apply();
-        messageId = lastMessageId;
-        return true;
-    }
     private void sendNewMessageBroadcast() {
+        Log.v("MessageListenerService", "Sending broadcast");
         Intent intent = new Intent("com.example.projectecripto.NEW_MESSAGE");
         sendBroadcast(intent);
     }
@@ -93,5 +109,6 @@ public class MessageListenerService extends Service {
     public void onDestroy() {
         super.onDestroy();
         isRunning = false;
+        socketClient.close();
     }
 }

@@ -1,12 +1,13 @@
 package com.example.projectecripto.model;
 
-import android.util.Log;
-
+import com.example.projectecripto.adapter.LocalDateTimeAdapter;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
 public class Message implements Serializable {
+    private static final String TAG = "Message";
     private int id;
     private String content;
     private boolean isSent;
@@ -15,15 +16,37 @@ public class Message implements Serializable {
     private int receiverId;
     private boolean dateSeparator;
 
-    public Message(int id,String content, boolean isSent, LocalDateTime date, int contactId) {
-        this.id = id;
+    public Message(String content, boolean isSent, LocalDateTime date, int contactId, int receiverId) {
         this.content = content;
         this.isSent = isSent;
         this.date = date;
         this.contactId = contactId;
+        this.receiverId = receiverId;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setContactId(int contactId) {
+        this.contactId = contactId;
+    }
+
+    public void setReceiverId(int receiverId) {
+        this.receiverId = receiverId;
+    }
+
+    public void setDate(LocalDateTime date) {
+        this.date = date;
     }
 
     public String getContent() {
+        return content;
+    }
+    public String getShortContent() {
+        if (content.length() > 20) {
+            return content.substring(0, 20) + "...";
+        }
         return content;
     }
 
@@ -54,10 +77,17 @@ public class Message implements Serializable {
         return receiverId;
     }
     public String toJson() {
-        return new Gson().toJson(this);
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+                .create();
+
+        return gson.toJson(this);
     }
     public static Message fromJson(String json) {
-        return new Gson().fromJson(json, Message.class);
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+                .create();
+        return gson.fromJson(json, Message.class);
     }
     public boolean isDateSeparator() {
         return dateSeparator;

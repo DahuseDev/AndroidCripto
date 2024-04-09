@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -52,7 +53,10 @@ public class MainActivity extends AppCompatActivity {
         MessageReceiver messageReceiver = new MessageReceiver();
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("com.example.projectecripto.NEW_MESSAGE");
-        registerReceiver(messageReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED);
+        registerReceiver(messageReceiver, intentFilter, Context.RECEIVER_EXPORTED);
+
+        Intent intent = new Intent(this, MessageListenerService.class);
+        startService(intent);
     }
 
     @Override
@@ -69,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onNewMessageReceived() {
+        Log.v("MainActivity", "New message received");
         refreshList();
     }
 //    public void updateList(Message newMessage) {

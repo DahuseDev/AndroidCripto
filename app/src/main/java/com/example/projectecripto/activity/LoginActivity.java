@@ -11,6 +11,10 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.projectecripto.R;
 import com.example.projectecripto.activity.MainActivity;
+import com.example.projectecripto.model.Contact;
+
+import java.time.LocalDateTime;
+import java.util.Date;
 
 public class LoginActivity extends AppCompatActivity {
     EditText etUser;
@@ -24,16 +28,25 @@ public class LoginActivity extends AppCompatActivity {
         etPass = findViewById(R.id.etPassword);
         btnLogin = findViewById(R.id.btLogin);
         btnLogin.setOnClickListener(v -> {
-            if(etUser.getText().toString().equals("admin") && etPass.getText().toString().equals("admin")){
+            if(etUser.getText().toString().equals("a") && etPass.getText().toString().equals("a")){
                 // sharedPreference to save the user
-                SharedPreferences sharedPreferences = getSharedPreferences("user", MODE_PRIVATE);
-                SharedPreferences.Editor editor = sharedPreferences.edit();
-                editor.putString("username", etUser.getText().toString());
-                editor.putInt("id", 1);
-                editor.apply();
+                Contact contact = new Contact(1, "","admin", "",0, LocalDateTime.now());
+
+//                SharedPreferences sharedPreferences = getSharedPreferences("user", MODE_PRIVATE);
+//                SharedPreferences.Editor editor = sharedPreferences.edit();
+                Contact.setCurrentContact(contact);
+//                editor.putString("username", etUser.getText().toString());
+//                editor.putInt("id", 1);
+//                editor.apply();
                 Intent intent = new Intent(this, MainActivity.class);
                 startActivity(intent);
-            }else{
+            }if (etUser.getText().toString().equals("u") && etPass.getText().toString().equals("u")){
+                Contact contact = new Contact(2, "","user", "",0, LocalDateTime.now());
+                Contact.setCurrentContact(contact);
+                Intent intent = new Intent(this, MainActivity.class);
+                startActivity(intent);
+            }
+            else{
                 etUser.setError("Usuario o contraseña incorrectos");
             }
         });

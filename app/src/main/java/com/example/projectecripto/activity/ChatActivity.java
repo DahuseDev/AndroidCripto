@@ -1,6 +1,12 @@
 package com.example.projectecripto.activity;
-
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -15,6 +21,7 @@ import com.example.projectecripto.SocketClient;
 import com.example.projectecripto.adapter.MessageAdapter;
 import com.example.projectecripto.model.Contact;
 import com.example.projectecripto.model.Message;
+import com.example.projectecripto.service.MessageListenerService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,18 +30,20 @@ import java.util.Date;
 import java.util.List;
 
 public class ChatActivity extends AppCompatActivity {
+    private static final String LAST_MESSAGE_ID = "last_message_id";
     private RecyclerView recyclerView;
     private MessageAdapter messageAdapter;
     private List<Message> messageList;
     private Button btnSend;
     private EditText etMessage;
-    private SocketClient socketClient;
+    private DatabaseHelper db;
+    private Contact contact;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
-        DatabaseHelper db = new DatabaseHelper(this);
-        Contact contact = (Contact) getIntent().getSerializableExtra("contact");
+        db = new DatabaseHelper(this);
+        contact = (Contact) getIntent().getSerializableExtra("contact");
         if (contact == null) {
             Toast.makeText(this, "No contact found", Toast.LENGTH_SHORT).show();
             finish();
@@ -47,28 +56,23 @@ public class ChatActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         messageList = db.getMessagesFromContact(contact.getId());
-        List<Message> messages = db.getMessagesFromContact(contact.getId());
-        if (messages != null) {
+        Log.v("ChatActivity", "Messages: " + messageList.size());
+        if (messageList != null) {
             LocalDate previousDate = null;
-            for (Message message : messages) {
+            for (Message message : messageList) {
                 LocalDate currentDate = message.getDate().toLocalDate();
                 if (!currentDate.equals(previousDate)) {
                     message.setDateSeparator(true);
                     previousDate = currentDate;
                 }
             }
-            messageList = messages;
-        }
-        if (messageList == null) {
+        }else{
             messageList = new ArrayList<>();
         }
 
+        db.resetUnreadMessages(contact.getId());
 
-//        messageList = new ArrayList<>();
-//        for (int i = 0; i < 20; i++) {
-//            messageList.add(new Message(i,"Message " + (i + 1), i % 2 == 0));
-//        }
-
+        messageList.add(new Message("Hi!", false, LocalDateTime.now(), contact.getId(), 1));
         messageAdapter = new MessageAdapter(messageList);
         recyclerView.setAdapter(messageAdapter);
         btnSend = findViewById(R.id.button_send);
@@ -84,24 +88,47 @@ public class ChatActivity extends AppCompatActivity {
         btnSend.setOnClickListener(v -> {
             String message = etMessage.getText().toString();
             if (!message.isEmpty()) {
-                Message newMessage = new Message(messageList.size(), message, true, LocalDateTime.now(), contact.getId());
+                int currentId = Contact.getCurrentContact().getId();
+                Message newMessage = new Message(message, true, LocalDateTime.now(), currentId, contact.getId());
+                Log.v("ChatActivity", "Sending message: " + newMessage.toJson());
                 messageList.add(newMessage);
                 messageAdapter.updateData(messageList);
                 recyclerView.smoothScrollToPosition(messageList.size() - 1);
                 etMessage.setText("");
                 db.addMessage(newMessage);
-                //socketClient.sendMessage(newMessage);
+                Intent intent = new Intent(this, MessageListenerService.class);
+                intent.setAction("SEND_MESSAGE");
+                intent.putExtra("message", newMessage);
+                startService(intent);
             }
         });
+
+        ChatActivity.MessageReceiver messageReceiver = new ChatActivity.MessageReceiver();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction("com.example.projectecripto.NEW_MESSAGE");
+        registerReceiver(messageReceiver, intentFilter, Context.RECEIVER_EXPORTED);
+
         if (!messageList.isEmpty()) {
             recyclerView.scrollToPosition(messageList.size() - 1);
         }
     }
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (socketClient != null) {
-            socketClient.close();
+    private void refreshList() {
+        messageList = db.getMessagesFromContact(contact.getId());
+        messageAdapter.updateData(messageList);
+        messageAdapter.notifyDataSetChanged();
+        recyclerView.scrollToPosition(messageList.size() - 1);
+    }
+
+    public void onNewMessageReceived() {
+        Log.v("MainActivity", "New message received");
+        refreshList();
+    }
+    public class MessageReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Extract the message from the intent
+            // Call the method
+            onNewMessageReceived();
         }
     }
 }
