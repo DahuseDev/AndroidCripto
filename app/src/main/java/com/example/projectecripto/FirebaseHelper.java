@@ -1,8 +1,13 @@
 package com.example.projectecripto;
 
+import android.util.Log;
+
 import com.example.projectecripto.model.Contact;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.time.LocalDateTime;
 
@@ -11,39 +16,74 @@ public class FirebaseHelper {
     public FirebaseHelper() {
         db = FirebaseDatabase.getInstance().getReference("users");
     }
-    public boolean addUser(String name,String password) {
-        if(!checkUser(name)) {
-            db.child(name).child("id").setValue(getLastId());
-            db.child(name).child("name").setValue(name);
-            db.child(name).child("password").setValue(password);
-            db.child("last_id").setValue(getLastId() + 1);
-            return true;
-        } else {
-            // User already exists
-            return false;
-        }
-    }
-    public boolean checkUser(String name) {
-        return db.child(name).child("password").get().isSuccessful();
-    }
-    public Contact login(String name,String password) {
-        Contact contact = null;
-        if (checkUser(name)) {
-            if (db.child(name).child("password").get().getResult().getValue().equals(password)) {
-                // Correct password
-                contact = new Contact(db.child(name).child("id").get().getResult().getValue(Integer.class), "", name, "", 0, LocalDateTime.now());
-            } else {
-                // Wrong password
+    public void addUser(String name,String password,OnContactChangedListener listener) {
+        checkUser(name, new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (!dataSnapshot.exists()) {
+                    getLastId(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            int id = 1;
+                            if(!dataSnapshot.exists()){
+                                db.child("last_id").setValue(id);
+                            }else{
+                                id = dataSnapshot.getValue(Integer.class);
+                            }
+                            db.child(name).child("id").setValue(id);
+                            db.child(name).child("password").setValue(password);
+                            db.child("last_id").setValue(id + 1);
+                            Contact contact = new Contact(id, "", name, "", 0, LocalDateTime.now());
+                            listener.onContactChanged(contact);
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+                            Log.v("FirebaseHelper", "Error getting last id");
+                        }
+                    });
+                }else{
+                    listener.onContactChanged(null);
+                }
             }
-        } else {
-            // User does not exist
-        }
-        return contact;
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.v("FirebaseHelper", "Error checking user");
+            }
+        });
     }
-    public int getLastId() {
-        if (!db.child("last_id").get().isSuccessful()) {
-            db.child("last_id").setValue(0);
-        }
-        return db.child("last_id").get().getResult().getValue(Integer.class);
+    public void checkUser(String name, ValueEventListener listener) {
+        db.child(name).addListenerForSingleValueEvent(listener);
+    }
+    public void login(String name, String password, OnContactChangedListener listener) {
+        checkUser(name, new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    String storedPassword = dataSnapshot.child("password").getValue(String.class);
+                    if (password.equals(storedPassword)) {
+                        Log.v("FirebaseHelper", "User " + name + " logged in");
+                        Contact contact = new Contact(dataSnapshot.child("id").getValue(Integer.class), "", name, "", 0, LocalDateTime.now());
+                        listener.onContactChanged(contact);
+                    } else {
+                        Log.v("FirebaseHelper", "User " + name + " failed to log in");
+                        listener.onContactChanged(null);
+                    }
+                } else {
+                    Log.v("FirebaseHelper", "User " + name + " does not exist");
+                    listener.onContactChanged(null);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                listener.onCancelled(databaseError);
+            }
+        });
+    }
+    public void getLastId(ValueEventListener listener) {
+        db.child("last_id").addListenerForSingleValueEvent(listener);
     }
 }
+

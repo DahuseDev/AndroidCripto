@@ -80,7 +80,7 @@ public class MessageListenerService extends Service {
     private void startListeningForMessages() {
         Log.v("MessageListenerService", "Listening for messages");
         // Check for new messages here
-        socketClient = new SocketClient("192.168.93.43", 8123, v ->{
+        socketClient = new SocketClient("192.168.1.65", 8123, v ->{
             DatabaseHelper db = new DatabaseHelper(this);
             SocketMessage socketMessage = SocketMessage.fromJson(v);
             switch (socketMessage.getType()){

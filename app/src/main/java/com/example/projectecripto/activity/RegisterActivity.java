@@ -3,6 +3,7 @@ package com.example.projectecripto.activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -11,9 +12,11 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.projectecripto.FirebaseHelper;
+import com.example.projectecripto.OnContactChangedListener;
 import com.example.projectecripto.R;
 import com.example.projectecripto.activity.MainActivity;
 import com.example.projectecripto.model.Contact;
+import com.google.firebase.database.DatabaseError;
 
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -31,7 +34,7 @@ public class RegisterActivity extends AppCompatActivity {
         etUser = findViewById(R.id.etUsername);
         etPass = findViewById(R.id.etPassword);
         btnLogin = findViewById(R.id.btLogin);
-        btnLogin.setText("Register");
+        btnLogin.setText("Registra't");
         tvLogin = findViewById(R.id.tvLogin);
         tvLogin.setText("Inicia sessió aqui");
         tvLogin.setOnClickListener(v -> {
@@ -40,15 +43,23 @@ public class RegisterActivity extends AppCompatActivity {
         });
         firebaseHelper = new FirebaseHelper();
         btnLogin.setOnClickListener(v -> {
-            boolean added = firebaseHelper.addUser(etUser.getText().toString(), etPass.getText().toString());
-            if(added){
-                Contact contact = firebaseHelper.login(etUser.getText().toString(), etPass.getText().toString());
-                Contact.setCurrentContact(contact);
-                Intent intent = new Intent(this, MainActivity.class);
-                startActivity(intent);
-            } else {
-                etUser.setError("L'usuari ja existeix");
-            }
+            firebaseHelper.addUser(etUser.getText().toString(), etPass.getText().toString(), new OnContactChangedListener() {
+                @Override
+                public void onContactChanged(Contact contact) {
+                    if (contact != null) {
+                        Contact.setCurrentContact(contact);
+                        Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
+                        startActivity(intent);
+                    } else {
+                        etUser.setError("L'usuari ja existeix");
+                    }
+                }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+
+                }
+            } );
         });
 
     }

@@ -37,11 +37,7 @@ public class MainActivity extends AppCompatActivity {
         db = new DatabaseHelper(this);
         recyclerView = findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-
-//        contactList = new ArrayList<>();
-//        contactList.add(new Contact(1,"","Alice", "Hi!",0));
-//        contactList.add(new Contact(2,"","Bob", "Hello!",0));
-//        contactList.add(new Contact(3,"","Charlie", "Hey!",0));
+        Log.v("MainActivity", "Creating contact list");
         contactAdapter = new ContactAdapter(contactList);
         recyclerView.setAdapter(contactAdapter);
         fab = findViewById(R.id.fabAdd);
@@ -56,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("com.example.projectecripto.NEW_MESSAGE");
         registerReceiver(messageReceiver, intentFilter, Context.RECEIVER_EXPORTED);
-
+        Log.v("MainActivity", "Registering message receiver");
         Intent intent = new Intent(this, MessageListenerService.class);
         startService(intent);
     }
