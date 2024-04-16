@@ -47,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, OnlineUsersActivity.class);
             startActivity(intent);
         });
+        setTitle("Contactes");
         refreshList();
         MessageReceiver messageReceiver = new MessageReceiver();
         IntentFilter intentFilter = new IntentFilter();

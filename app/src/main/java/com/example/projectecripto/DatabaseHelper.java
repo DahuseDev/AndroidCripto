@@ -37,6 +37,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String KEY_MESSAGE = "message";
     private static final String KEY_IS_SENT = "is_sent";
     private static final String KEY_DATE = "date";
+    private static final String TABLE_FINGERPRINT_PRIVATEKEYS = "fingerprint_privatekeys";
+    private static final String KEY_FINGERPRINT_ID = "id";
+    private static final String KEY_PRIVATEKEY = "privatekey";
     private static ArrayList<Contact> contactList;
     private static ArrayList<Message> messageList;
     private SQLiteDatabase db;
@@ -61,15 +64,41 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + KEY_SENDER_ID + " INTEGER," + KEY_RECEIVER_ID + " INTEGER)";
         db.execSQL(CREATE_MESSAGES_TABLE);
 
+        String CREATE_FINGERPRINT_PRIVATEKEYS_TABLE = "CREATE TABLE " + TABLE_FINGERPRINT_PRIVATEKEYS + "("
+                + KEY_FINGERPRINT_ID + " INTEGER PRIMARY KEY," + KEY_PRIVATEKEY + " TEXT)";
+        db.execSQL(CREATE_FINGERPRINT_PRIVATEKEYS_TABLE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_CONTACTS);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_MESSAGES);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_FINGERPRINT_PRIVATEKEYS);
         onCreate(db);
     }
-
+    public void addFingerprintPrivateKey(int userId, String privateKey) {
+        ContentValues values = new ContentValues();
+        values.put(KEY_FINGERPRINT_ID, userId);
+        values.put(KEY_PRIVATEKEY, privateKey);
+        db.insert(TABLE_FINGERPRINT_PRIVATEKEYS, null, values);
+    }
+    public String getFingerprintPrivateKey(int userId) {
+        String selectQuery = "SELECT " + KEY_PRIVATEKEY + " FROM " + TABLE_FINGERPRINT_PRIVATEKEYS + " WHERE " + KEY_FINGERPRINT_ID + " = " + userId;
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        String privateKey = null;
+        if (cursor.moveToFirst()) {
+            privateKey = cursor.getString(0);
+        }
+        cursor.close();
+        return privateKey;
+    }
+    public boolean fingerprintPrivateKeyExists(int userId) {
+        String selectQuery = "SELECT " + KEY_PRIVATEKEY + " FROM " + TABLE_FINGERPRINT_PRIVATEKEYS + " WHERE " + KEY_FINGERPRINT_ID + " = " + userId;
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        boolean exists = cursor.getCount() > 0;
+        cursor.close();
+        return exists;
+    }
     public List<Contact> getAllContacts() {
         List<Contact> contactList = new ArrayList<>();
         String selectQuery = "SELECT  * FROM " + TABLE_CONTACTS + " ORDER BY " + KEY_DATE + " DESC";

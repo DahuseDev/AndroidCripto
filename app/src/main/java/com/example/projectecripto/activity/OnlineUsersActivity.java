@@ -40,6 +40,7 @@ public class OnlineUsersActivity extends AppCompatActivity {
         recyclerView.setAdapter(contactAdapter);
         fab = findViewById(R.id.fabAdd);
         fab.setVisibility(View.GONE);
+        setTitle("Usuaris en línia");
         refreshList();
         OnlineUsersActivity.MessageReceiver messageReceiver = new OnlineUsersActivity.MessageReceiver();
         IntentFilter intentFilter = new IntentFilter();
@@ -75,6 +76,5 @@ public class OnlineUsersActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopService(new Intent(this, MessageListenerService.class));
     }
 }

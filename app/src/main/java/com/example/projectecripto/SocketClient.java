@@ -70,6 +70,7 @@ public class SocketClient {
                     return;
                 }
                 try {
+                    Log.v("SocketClient", "Sending message: " + socketMessage.toJson());
                     objectOutputStream.writeObject(Xifrador.encryptWrappedData(socketMessage.toJson()));
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -88,7 +89,7 @@ public class SocketClient {
                 Xifrador.setServerPublicKey(Xifrador.getPublicKeyFromString(bufferedReader.readLine()));
                 sendMessage(Contact.getCurrentContact());
                 Log.v("SocketClient", "Received public key");
-                while ((receivedData = (byte[][]) objectInputStream.readObject()) != null) {
+                while (!socket.isClosed() & (receivedData = (byte[][]) objectInputStream.readObject()) != null) {
                     Log.v("SocketClient", "Received message: " + Arrays.deepToString(receivedData));
                     messageListener.messageReceived(Xifrador.decryptWrappedData(receivedData));
                 }
@@ -116,6 +117,7 @@ public class SocketClient {
     }
 
     public void close() {
+        Log.v("SocketClient", "Closing connection");
         if (printWriter != null) {
             printWriter.close();
         }

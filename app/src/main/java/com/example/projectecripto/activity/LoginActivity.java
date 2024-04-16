@@ -11,6 +11,7 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.projectecripto.BiometricHelper;
 import com.example.projectecripto.FirebaseHelper;
 import com.example.projectecripto.OnContactChangedListener;
 import com.example.projectecripto.R;
@@ -29,6 +30,7 @@ public class LoginActivity extends AppCompatActivity {
     Button btnLogin;
     FirebaseHelper firebaseHelper;
     TextView tvRegister;
+    BiometricHelper biometricHelper;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,15 +44,16 @@ public class LoginActivity extends AppCompatActivity {
             Intent intent = new Intent(this, RegisterActivity.class);
             startActivity(intent);
         });
+        biometricHelper = new BiometricHelper(LoginActivity.this);
         firebaseHelper = new FirebaseHelper();
+        setTitle("Inici de sessió");
         btnLogin.setOnClickListener(v -> {
             firebaseHelper.login(etUser.getText().toString(), etPass.getText().toString(), new OnContactChangedListener() {
                 @Override
                 public void onContactChanged(Contact contact) {
                     if (contact != null) {
                         Contact.setCurrentContact(contact);
-                        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                        startActivity(intent);
+                        biometricHelper.showBiometricPrompt();
                     } else {
                         etUser.setError("Usuario o contraseña incorrectos");
                     }

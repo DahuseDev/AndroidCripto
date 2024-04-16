@@ -31,7 +31,7 @@ public class FirebaseHelper {
                                 id = dataSnapshot.getValue(Integer.class);
                             }
                             db.child(name).child("id").setValue(id);
-                            db.child(name).child("password").setValue(password);
+                            db.child(name).child("password").setValue(Xifrador.hashPassword(password));
                             db.child("last_id").setValue(id + 1);
                             Contact contact = new Contact(id, "", name, "", 0, LocalDateTime.now());
                             listener.onContactChanged(contact);
@@ -62,7 +62,7 @@ public class FirebaseHelper {
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
                     String storedPassword = dataSnapshot.child("password").getValue(String.class);
-                    if (password.equals(storedPassword)) {
+                    if (Xifrador.verifyPassword(password, storedPassword)) {
                         Log.v("FirebaseHelper", "User " + name + " logged in");
                         Contact contact = new Contact(dataSnapshot.child("id").getValue(Integer.class), "", name, "", 0, LocalDateTime.now());
                         listener.onContactChanged(contact);

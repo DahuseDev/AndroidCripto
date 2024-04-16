@@ -11,6 +11,7 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.projectecripto.BiometricHelper;
 import com.example.projectecripto.FirebaseHelper;
 import com.example.projectecripto.OnContactChangedListener;
 import com.example.projectecripto.R;
@@ -27,6 +28,7 @@ public class RegisterActivity extends AppCompatActivity {
     Button btnLogin;
     TextView tvLogin;
     FirebaseHelper firebaseHelper;
+    BiometricHelper biometricHelper;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,15 +43,16 @@ public class RegisterActivity extends AppCompatActivity {
             Intent intent = new Intent(this, LoginActivity.class);
             startActivity(intent);
         });
+        setTitle("Registre");
         firebaseHelper = new FirebaseHelper();
+        biometricHelper = new BiometricHelper(RegisterActivity.this);
         btnLogin.setOnClickListener(v -> {
             firebaseHelper.addUser(etUser.getText().toString(), etPass.getText().toString(), new OnContactChangedListener() {
                 @Override
                 public void onContactChanged(Contact contact) {
                     if (contact != null) {
                         Contact.setCurrentContact(contact);
-                        Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
-                        startActivity(intent);
+                        biometricHelper.showBiometricPrompt();
                     } else {
                         etUser.setError("L'usuari ja existeix");
                     }
